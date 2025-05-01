@@ -16,8 +16,8 @@ export default function Home() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
       'text/csv': ['.csv'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+      'application/zip': ['.zip'],
+      'application/x-zip-compressed': ['.zip']
     },
     maxFiles: 1,
     onDrop: (acceptedFiles) => {
@@ -36,21 +36,32 @@ export default function Home() {
     formData.append('files', file)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/upload`
+      console.log('Attempting to upload to:', apiUrl)
+      console.log('File being uploaded:', file.name, 'Size:', file.size)
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
       })
 
+      console.log('Response status:', response.status)
+      
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('Error response:', errorData)
         throw new Error(errorData.error || 'Upload failed')
       }
 
       const data = await response.json()
+      console.log('Success response:', data)
       setChartData(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
       console.error('Upload error:', err)
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }

@@ -57,18 +57,32 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
+        logger.info("Received upload request")
+        logger.info("Request headers: %s", dict(request.headers))
+        
         if 'files' not in request.files:
+            logger.error("No files part in request")
             return jsonify({'error': 'No files part'}), 400
         
         files = request.files.getlist('files')
         if not files or files[0].filename == '':
+            logger.error("No selected files")
             return jsonify({'error': 'No selected files'}), 400
+        
+        logger.info("Processing %d files", len(files))
+        for file in files:
+            logger.info("File: %s, Size: %d bytes", file.filename, len(file.read()))
+            file.seek(0)  # Reset file pointer after reading
         
         # Process uploaded files
         data_files, image_files, graph_files = process_files(files)
         
         if not data_files:
+            logger.error("No valid CSV files found")
             return jsonify({'error': 'No valid CSV files found'}), 400
+        
+        logger.info("Found %d data files, %d image files, %d graph files", 
+                   len(data_files), len(image_files), len(graph_files))
         
         # Read the first CSV file
         df = pd.read_csv(data_files[0])
@@ -125,10 +139,90 @@ def upload_file():
             'sequence': str(first_row['sequence'])
         }
         
+        logger.info("Sending response: %s", response_data)
         return jsonify(response_data)
     
     except Exception as e:
         logger.error(f"Error processing upload: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+def process_files(files):
+    data_files = []
+    image_files = []
+    graph_files = []
+    
+    for file in files:
+        logger.info(f"Processing file: {file.filename}, Content-Type: {file.content_type}")
+        
+        if file.filename.endswith('.zip'):
+            try:
+                # Create a temporary directory for extraction
+                temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_' + secure_filename(file.filename))
+                os.makedirs(temp_dir, exist_ok=True)
+                logger.info(f"Created temp directory: {temp_dir}")
+                
+                # Save and extract the zip file
+                zip_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+                file.save(zip_path)
+                logger.info(f"Saved zip file to: {zip_path}")
+                
+                try:
+                    extract_zip(zip_path, temp_dir)
+                    logger.info(f"Successfully extracted zip file to: {temp_dir}")
+                except Exception as e:
+                    logger.error(f"Error extracting zip file: {str(e)}")
+                    raise
+                
+                # Process extracted files
+                for root, _, files in os.walk(temp_dir):
+                    for f in files:
+                        logger.info(f"Found extracted file: {f}")
+                        if f.endswith('.csv'):
+                            data_files.append(os.path.join(root, f))
+                            logger.info(f"Added CSV file: {f}")
+                        elif f.endswith('.png'):
+                            # Copy image to static folder
+                            src_path = os.path.join(root, f)
+                            dst_path = os.path.join(app.config['STATIC_FOLDER'], f)
+                            shutil.copy2(src_path, dst_path)
+                            image_files.append(f)
+                            logger.info(f"Processed image file: {f}")
+                        elif f.endswith('.npy'):
+                            try:
+                                # Load and convert numpy array to JSON
+                                src_path = os.path.join(root, f)
+                                graph_data = np.load(src_path)
+                                graph_json = json.dumps(convert_numpy_types(graph_data))
+                                # Create JSON filename by replacing .npy with .json
+                                json_filename = f.replace('.npy', '.json')
+                                dst_path = os.path.join(app.config['STATIC_FOLDER'], json_filename)
+                                with open(dst_path, 'w') as json_file:
+                                    json_file.write(graph_json)
+                                graph_files.append(json_filename)
+                                logger.info(f"Processed graph file: {f} -> {json_filename}")
+                            except Exception as e:
+                                logger.error(f"Error processing graph file {f}: {str(e)}")
+                
+                # Clean up
+                os.remove(zip_path)
+                shutil.rmtree(temp_dir)
+                logger.info("Cleaned up temporary files")
+                
+            except Exception as e:
+                logger.error(f"Error processing zip file: {str(e)}")
+                raise
+                
+        elif file.filename.endswith('.csv'):
+            try:
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+                file.save(file_path)
+                data_files.append(file_path)
+                logger.info(f"Saved CSV file: {file_path}")
+            except Exception as e:
+                logger.error(f"Error saving CSV file: {str(e)}")
+                raise
+    
+    logger.info(f"Processed files summary - CSV: {len(data_files)}, Images: {len(image_files)}, Graphs: {len(graph_files)}")
+    return data_files, image_files, graph_files
 
 # ... rest of your existing code from website/app.py ... 
