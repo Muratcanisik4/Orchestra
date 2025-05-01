@@ -37,7 +37,7 @@ export default function Home() {
     setError(null)
 
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/upload`
+      const apiUrl = 'https://orchestra-hoa7.onrender.com/upload'
       console.log('Attempting to upload to:', apiUrl)
       
       const formData = new FormData()
@@ -49,14 +49,16 @@ export default function Home() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
-        credentials: 'include',
         headers: {
           'Accept': 'application/json'
         }
       })
 
+      console.log('Response status:', response.status)
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error('Error response:', errorData)
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
       }
 
@@ -68,7 +70,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Upload error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to upload files')
+      setError(err instanceof Error ? err.message : 'Failed to upload files. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -26,11 +26,13 @@ CORS(app, resources={
             "https://orchestra-36c3410dn-murat-isiks-projects.vercel.app",
             "https://orchestra-frontend.vercel.app",
             "https://orchestra-bice.vercel.app",
-            "https://orchestra-backend.onrender.com"
+            "https://orchestra-backend.onrender.com",
+            "https://*.vercel.app"  # Allow all Vercel subdomains
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Accept"],
-        "supports_credentials": True
+        "supports_credentials": True,
+        "max_age": 3600
     }
 })
 
