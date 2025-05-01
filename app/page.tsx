@@ -49,6 +49,7 @@ export default function Home() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
+        mode: 'cors',
         headers: {
           'Accept': 'application/json'
         }

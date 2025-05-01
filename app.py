@@ -27,10 +27,12 @@ CORS(app, resources={
             "https://orchestra-frontend.vercel.app",
             "https://orchestra-bice.vercel.app",
             "https://orchestra-backend.onrender.com",
+            "https://orchestra-9va4skzma-murat-isiks-projects.vercel.app",
             "https://*.vercel.app"  # Allow all Vercel subdomains
         ],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Accept"],
+        "allow_headers": ["Content-Type", "Accept", "Authorization"],
+        "expose_headers": ["Content-Type", "Accept"],
         "supports_credentials": True,
         "max_age": 3600
     }
