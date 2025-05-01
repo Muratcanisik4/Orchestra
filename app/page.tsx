@@ -50,19 +50,25 @@ export default function Home() {
         method: 'POST',
         body: formData,
         mode: 'cors',
-        credentials: 'omit',
         headers: {
           'Accept': 'application/json',
-        },
+          'Origin': window.location.origin
+        }
       })
 
       console.log('Response status:', response.status)
       console.log('Response headers:', Object.fromEntries(response.headers.entries()))
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('Error response:', errorData)
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          console.error('Error response:', errorData)
+          errorMessage = errorData.message || errorMessage
+        } catch (e) {
+          console.error('Error parsing error response:', e)
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()

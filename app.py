@@ -17,27 +17,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-# Configure CORS for production
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "http://localhost:3000",
-            "https://orchestra-git-master-murat-isiks-projects.vercel.app",
-            "https://orchestra-36c3410dn-murat-isiks-projects.vercel.app",
-            "https://orchestra-frontend.vercel.app",
-            "https://orchestra-bice.vercel.app",
-            "https://orchestra-backend.onrender.com",
-            "https://orchestra-9va4skzma-murat-isiks-projects.vercel.app",
-            "https://orchestra-363u44uat-murat-isiks-projects.vercel.app",
-            "https://*.vercel.app"  # Allow all Vercel subdomains
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["*"],  # Allow all headers
-        "expose_headers": ["*"],  # Expose all headers
-        "supports_credentials": True,
-        "max_age": 3600
-    }
-})
+
+# Simplified CORS configuration
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Configure upload folder
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
