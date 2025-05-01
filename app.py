@@ -75,79 +75,90 @@ def upload_file():
         
         logger.info("Processing %d files", len(files))
         for file in files:
-            logger.info("File: %s, Size: %d bytes", file.filename, len(file.read()))
+            logger.info("File: %s, Size: %d bytes, Content-Type: %s", 
+                       file.filename, len(file.read()), file.content_type)
             file.seek(0)  # Reset file pointer after reading
         
-        # Process uploaded files
-        data_files, image_files, graph_files = process_files(files)
-        
-        if not data_files:
-            logger.error("No valid CSV files found")
-            return jsonify({'error': 'No valid CSV files found'}), 400
-        
-        logger.info("Found %d data files, %d image files, %d graph files", 
-                   len(data_files), len(image_files), len(graph_files))
-        
-        # Read the first CSV file
-        df = pd.read_csv(data_files[0])
-        first_row = df.iloc[0]
-        
-        # Debug information
-        logger.info("CSV Columns: %s", df.columns.tolist())
-        logger.info("First row data: %s", first_row.to_dict())
-        
-        # Find corresponding image and graph files
-        image_path = None
-        graph_path = None
-        graph_adjacency = None
-        
-        # Sort files to ensure consistent ordering
-        image_files.sort()
-        graph_files.sort()
-        
-        if image_files:
-            image_path = f"/static/{image_files[0]}"
-            logger.info(f"Using first image file: {image_path}")
-        
-        if graph_files:
-            graph_file = graph_files[0]
-            graph_path = f"/static/{graph_file}"
-            logger.info(f"Using first graph file: {graph_path}")
+        try:
+            # Process uploaded files
+            data_files, image_files, graph_files = process_files(files)
             
+            if not data_files:
+                logger.error("No valid CSV files found")
+                return jsonify({'error': 'No valid CSV files found'}), 400
+            
+            logger.info("Found %d data files, %d image files, %d graph files", 
+                       len(data_files), len(image_files), len(graph_files))
+            
+            # Read the first CSV file
             try:
-                json_path = os.path.join(app.config['STATIC_FOLDER'], graph_file)
-                logger.info(f"Loading graph data from: {json_path}")
-                with open(json_path, 'r') as f:
-                    graph_adjacency = json.load(f)
-                logger.info(f"Successfully loaded graph data, type: {type(graph_adjacency)}")
-            except Exception as e:
-                logger.error(f"Error loading graph data: {str(e)}")
-                if 'graph_adjacency' in first_row:
+                df = pd.read_csv(data_files[0])
+                first_row = df.iloc[0]
+                
+                # Debug information
+                logger.info("CSV Columns: %s", df.columns.tolist())
+                logger.info("First row data: %s", first_row.to_dict())
+                
+                # Find corresponding image and graph files
+                image_path = None
+                graph_path = None
+                graph_adjacency = None
+                
+                # Sort files to ensure consistent ordering
+                image_files.sort()
+                graph_files.sort()
+                
+                if image_files:
+                    image_path = f"/static/{image_files[0]}"
+                    logger.info(f"Using first image file: {image_path}")
+                
+                if graph_files:
+                    graph_file = graph_files[0]
+                    graph_path = f"/static/{graph_file}"
+                    logger.info(f"Using first graph file: {graph_path}")
+                    
                     try:
-                        graph_str = first_row['graph_adjacency']
-                        graph_array = np.array(eval(graph_str))
-                        graph_adjacency = graph_array.tolist()
-                        logger.info("Using graph data from CSV")
+                        json_path = os.path.join(app.config['STATIC_FOLDER'], graph_file)
+                        logger.info(f"Loading graph data from: {json_path}")
+                        with open(json_path, 'r') as f:
+                            graph_adjacency = json.load(f)
+                        logger.info(f"Successfully loaded graph data, type: {type(graph_adjacency)}")
                     except Exception as e:
-                        logger.error(f"Error parsing graph data from CSV: {str(e)}")
-        
-        # Prepare response data
-        response_data = {
-            'message': 'Files uploaded successfully',
-            'smiles': str(first_row['rxn_smiles']),
-            'ec_number': str(first_row['ec']),
-            'ec_category': str(first_row['ec_category']),
-            'graph_adjacency': graph_adjacency,
-            'image_path': image_path,
-            'uniprot_id': str(first_row['uniprot_id']),
-            'sequence': str(first_row['sequence'])
-        }
-        
-        logger.info("Sending response: %s", response_data)
-        return jsonify(response_data)
+                        logger.error(f"Error loading graph data: {str(e)}")
+                        if 'graph_adjacency' in first_row:
+                            try:
+                                graph_str = first_row['graph_adjacency']
+                                graph_array = np.array(eval(graph_str))
+                                graph_adjacency = graph_array.tolist()
+                                logger.info("Using graph data from CSV")
+                            except Exception as e:
+                                logger.error(f"Error parsing graph data from CSV: {str(e)}")
+                
+                # Prepare response data
+                response_data = {
+                    'message': 'Files uploaded successfully',
+                    'smiles': str(first_row['rxn_smiles']),
+                    'ec_number': str(first_row['ec']),
+                    'ec_category': str(first_row['ec_category']),
+                    'graph_adjacency': graph_adjacency,
+                    'image_path': image_path,
+                    'uniprot_id': str(first_row['uniprot_id']),
+                    'sequence': str(first_row['sequence'])
+                }
+                
+                logger.info("Sending response: %s", response_data)
+                return jsonify(response_data)
+                
+            except Exception as e:
+                logger.error(f"Error processing CSV file: {str(e)}")
+                return jsonify({'error': f'Error processing CSV file: {str(e)}'}), 500
+                
+        except Exception as e:
+            logger.error(f"Error processing files: {str(e)}")
+            return jsonify({'error': f'Error processing files: {str(e)}'}), 500
     
     except Exception as e:
-        logger.error(f"Error processing upload: {str(e)}")
+        logger.error(f"Error in upload_file: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 def process_files(files):
@@ -171,7 +182,8 @@ def process_files(files):
                 logger.info(f"Saved zip file to: {zip_path}")
                 
                 try:
-                    extract_zip(zip_path, temp_dir)
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        zip_ref.extractall(temp_dir)
                     logger.info(f"Successfully extracted zip file to: {temp_dir}")
                 except Exception as e:
                     logger.error(f"Error extracting zip file: {str(e)}")
