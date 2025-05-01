@@ -33,7 +33,7 @@ export default function Home() {
     setError(null)
 
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('files', file)
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
@@ -42,13 +42,15 @@ export default function Home() {
       })
 
       if (!response.ok) {
-        throw new Error('Upload failed')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
       }
 
       const data = await response.json()
       setChartData(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('Upload error:', err)
     } finally {
       setLoading(false)
     }
