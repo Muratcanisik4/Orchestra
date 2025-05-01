@@ -24,7 +24,8 @@ CORS(app, resources={
             "http://localhost:3000",
             "https://orchestra-git-master-murat-isiks-projects.vercel.app",
             "https://orchestra-36c3410dn-murat-isiks-projects.vercel.app",
-            "https://orchestra-frontend.vercel.app"
+            "https://orchestra-frontend.vercel.app",
+            "https://orchestra-bice.vercel.app"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"]
