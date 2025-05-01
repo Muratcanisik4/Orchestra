@@ -50,13 +50,14 @@ export default function Home() {
         method: 'POST',
         body: formData,
         mode: 'cors',
-        credentials: 'include',
+        credentials: 'omit',
         headers: {
           'Accept': 'application/json',
         },
       })
 
       console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
