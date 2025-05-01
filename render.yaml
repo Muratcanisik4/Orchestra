@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: orchestra-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: FLASK_ENV
+        value: production
+      - key: UPLOAD_FOLDER
+        value: uploads
+      - key: STATIC_FOLDER
+        value: static
+      - key: MAX_CONTENT_LENGTH
+        value: 16777216 
