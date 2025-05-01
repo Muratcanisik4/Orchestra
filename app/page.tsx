@@ -8,63 +8,74 @@ import { Line } from 'react-chartjs-2'
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [chartData, setChartData] = useState<any>(null)
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
-      'text/csv': ['.csv'],
       'application/zip': ['.zip'],
-      'application/x-zip-compressed': ['.zip']
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
     },
-    maxFiles: 1,
+    maxFiles: 5,
     onDrop: (acceptedFiles) => {
-      setFile(acceptedFiles[0])
+      setFiles(prevFiles => [...prevFiles, ...acceptedFiles])
       setError(null)
     }
   })
 
   const handleUpload = async () => {
-    if (!file) return
+    if (files.length === 0) {
+      setError('Please select at least one file')
+      return
+    }
 
     setLoading(true)
     setError(null)
 
-    const formData = new FormData()
-    formData.append('files', file)
-
     try {
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/upload`
       console.log('Attempting to upload to:', apiUrl)
-      console.log('File being uploaded:', file.name, 'Size:', file.size)
       
+      const formData = new FormData()
+      files.forEach((file, index) => {
+        console.log(`File ${index + 1}:`, file.name, 'Size:', file.size)
+        formData.append('files', file)
+      })
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
         headers: {
-          'Accept': 'application/json',
-        },
+          'Accept': 'application/json'
+        }
       })
 
-      console.log('Response status:', response.status)
-      
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Error response:', errorData)
-        throw new Error(errorData.error || 'Upload failed')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
-      console.log('Success response:', data)
-      setChartData(data)
+      console.log('Upload response:', data)
+      
+      if (data.chart_data) {
+        setChartData(data.chart_data)
+      }
     } catch (err) {
       console.error('Upload error:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : 'Failed to upload files')
     } finally {
       setLoading(false)
     }
+  }
+
+  const removeFile = (index: number) => {
+    setFiles(prevFiles => prevFiles.filter((_, i) => i !== index))
   }
 
   return (
@@ -79,18 +90,36 @@ export default function Home() {
               ${isDragActive ? 'border-accent bg-accent/10' : 'border-gray-300 hover:border-accent'}`}
           >
             <input {...getInputProps()} />
-            {file ? (
-              <p className="text-lg">Selected file: {file.name}</p>
-            ) : (
-              <p className="text-lg">
-                {isDragActive
-                  ? 'Drop the file here'
-                  : 'Drag and drop a CSV or Excel file here, or click to select'}
-              </p>
-            )}
+            <p className="text-lg">
+              {isDragActive
+                ? 'Drop the files here'
+                : 'Drag and drop files here, or click to select'}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Supported formats: ZIP, CSV, Excel (XLS, XLSX)
+            </p>
           </div>
 
-          {file && (
+          {files.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Selected Files:</h3>
+              <ul className="space-y-2">
+                {files.map((file, index) => (
+                  <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span className="text-sm">{file.name}</span>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {files.length > 0 && (
             <button
               onClick={handleUpload}
               disabled={loading}
@@ -122,9 +151,9 @@ export default function Home() {
                     },
                     title: {
                       display: true,
-                      text: 'Data Analysis',
-                    },
-                  },
+                      text: 'Analysis Results'
+                    }
+                  }
                 }}
               />
             </div>
