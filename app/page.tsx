@@ -50,9 +50,10 @@ export default function Home() {
         method: 'POST',
         body: formData,
         mode: 'cors',
+        credentials: 'include',
         headers: {
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+        },
       })
 
       console.log('Response status:', response.status)
