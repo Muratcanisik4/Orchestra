@@ -24,3 +24,4 @@ static/
 .venv
 venv/
 ENV/ 
+node_modules

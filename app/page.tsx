@@ -1,20 +1,43 @@
 'use client'
 
 import { useState } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, FileRejection } from 'react-dropzone'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import QuantumAnimation from './components/QuantumAnimation'
 import MoleculeInfo from './components/MoleculeInfo'
+import ResultsSection from './components/ResultsSection'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+
+interface ResultsData {
+  performance: {
+    accuracy: number
+    precision: number
+    recall: number
+    f1Score: number
+  }
+  trainingProgress: {
+    labels: string[]
+    trainingLoss: number[]
+    validationLoss: number[]
+  }
+  confusionMatrix: {
+    labels: string[]
+    data: number[][]
+  }
+  featureImportance: {
+    labels: string[]
+    data: number[]
+  }
+}
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [chartData, setChartData] = useState<any>(null)
   const [uploadResult, setUploadResult] = useState<any>(null)
+  const [resultsData, setResultsData] = useState<ResultsData | null>(null)
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -24,7 +47,7 @@ export default function Home() {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
     },
     maxFiles: 5,
-    onDrop: (acceptedFiles) => {
+    onDrop: (acceptedFiles: File[]) => {
       setFiles(prevFiles => [...prevFiles, ...acceptedFiles])
       setError(null)
     }
@@ -39,13 +62,14 @@ export default function Home() {
     setLoading(true)
     setError(null)
     setUploadResult(null)
+    setResultsData(null)
 
     try {
       const apiUrl = 'https://orchestra-hoa7.onrender.com/upload'
       console.log('Attempting to upload to:', apiUrl)
       
       const formData = new FormData()
-      files.forEach((file, index) => {
+      files.forEach((file: File, index: number) => {
         console.log(`File ${index + 1}:`, file.name, 'Size:', file.size)
         formData.append('files', file)
       })
@@ -89,18 +113,28 @@ export default function Home() {
       }
       
       setUploadResult(mockQuantumData)
-      
-      // Mock chart data
-      setChartData({
-        labels: ['Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5'],
-        datasets: [
-          {
-            label: 'Training Progress',
-            data: [0.2, 0.4, 0.6, 0.8, 0.9],
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
-          }
-        ]
+
+      // Mock results data
+      setResultsData({
+        performance: {
+          accuracy: 0.92,
+          precision: 0.89,
+          recall: 0.88,
+          f1Score: 0.90
+        },
+        trainingProgress: {
+          labels: ['Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5'],
+          trainingLoss: [0.8, 0.6, 0.4, 0.3, 0.2],
+          validationLoss: [0.85, 0.7, 0.5, 0.45, 0.4]
+        },
+        confusionMatrix: {
+          labels: ['Predicted 0', 'Predicted 1'],
+          data: [[85, 15], [10, 90]]
+        },
+        featureImportance: {
+          labels: ['Molecular Weight', 'Charge', 'Bond Count', 'Ring Count', 'H Acceptors', 'H Donors'],
+          data: [0.85, 0.72, 0.68, 0.55, 0.48, 0.42]
+        }
       })
     } catch (err) {
       console.error('Upload error:', err)
@@ -113,7 +147,7 @@ export default function Home() {
   }
 
   const removeFile = (index: number) => {
-    setFiles(prevFiles => prevFiles.filter((_, i) => i !== index))
+    setFiles(prevFiles => prevFiles.filter((_: File, i: number) => i !== index))
   }
 
   return (
@@ -147,7 +181,7 @@ export default function Home() {
                 <div className="mt-4">
                   <h3 className="text-lg font-semibold mb-2">Selected Files:</h3>
                   <ul className="space-y-2">
-                    {files.map((file, index) => (
+                    {files.map((file: File, index: number) => (
                       <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                         <span className="text-sm">{file.name}</span>
                         <button
@@ -184,29 +218,7 @@ export default function Home() {
 
           <div className="space-y-8">
             {uploadResult && <MoleculeInfo data={uploadResult} />}
-
-            {chartData && (
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-2xl font-semibold text-primary mb-4">Training Progress</h2>
-                <div className="h-[300px]">
-                  <Line
-                    data={chartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'top' as const,
-                        },
-                        title: {
-                          display: false
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+            {resultsData && <ResultsSection data={resultsData} />}
           </div>
         </div>
       </div>
