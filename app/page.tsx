@@ -12,6 +12,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [chartData, setChartData] = useState<any>(null)
+  const [uploadResult, setUploadResult] = useState<any>(null)
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -35,6 +36,7 @@ export default function Home() {
 
     setLoading(true)
     setError(null)
+    setUploadResult(null)
 
     try {
       const apiUrl = 'https://orchestra-hoa7.onrender.com/upload'
@@ -73,6 +75,7 @@ export default function Home() {
 
       const data = await response.json()
       console.log('Upload response:', data)
+      setUploadResult(data)
       
       if (data.chart_data) {
         setChartData(data.chart_data)
@@ -143,6 +146,35 @@ export default function Home() {
           {error && (
             <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
               {error}
+            </div>
+          )}
+
+          {uploadResult && (
+            <div className="mt-4 p-4 bg-green-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-800 mb-2">Upload Results:</h3>
+              <div className="space-y-2">
+                <p><span className="font-medium">Message:</span> {uploadResult.message}</p>
+                <p><span className="font-medium">EC Number:</span> {uploadResult.ec_number}</p>
+                <p><span className="font-medium">EC Category:</span> {uploadResult.ec_category}</p>
+                {uploadResult.image_path && (
+                  <div>
+                    <p className="font-medium mb-2">Molecule Image:</p>
+                    <img 
+                      src={`https://orchestra-hoa7.onrender.com${uploadResult.image_path}`}
+                      alt="Molecule"
+                      className="max-w-full h-auto rounded-lg shadow-md"
+                    />
+                  </div>
+                )}
+                {uploadResult.graph_adjacency && (
+                  <div>
+                    <p className="font-medium mb-2">Graph Adjacency Matrix:</p>
+                    <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+                      {JSON.stringify(uploadResult.graph_adjacency, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
