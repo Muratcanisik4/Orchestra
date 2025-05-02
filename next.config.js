@@ -2,18 +2,18 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['localhost', 'orchestra-backend.onrender.com'],
+    domains: ['localhost', 'orchestra-hoa7.onrender.com'],
   },
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://orchestra-backend.onrender.com/:path*',
+        destination: 'https://orchestra-hoa7.onrender.com/:path*',
       },
     ]
   },
   env: {
-    NEXT_PUBLIC_API_URL: 'https://orchestra-backend.onrender.com',
+    NEXT_PUBLIC_API_URL: 'https://orchestra-hoa7.onrender.com',
   },
 }
 
